@@ -1,46 +1,18 @@
 import os
 from flask import Flask, render_template, request, session, redirect, url_for
 from PIL import Image
-import google.generativeai as genai
-from dotenv import load_dotenv
-import json
-import io
-import re
+import numpy as np
+import cv2
+from tensorflow.keras.models import load_model
 import base64
-
-
-# Load environment variables
-load_dotenv()
-genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
 app = Flask(__name__)
 app.secret_key = 'any_secret_key'
-UPLOAD_FOLDER = 'static/'
+UPLOAD_FOLDER = 'static/uploaded'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 
-# Gemini model
-model = genai.GenerativeModel('models/gemini-1.5-flash')
-
-PROMPT = """
-You are a medical assistant. Analyze the image of a visible human health condition
-and reply strictly in this JSON format only:
-{
-  "diagnosis": "string",
-  "description": "string",
-  "symptoms":"string",
-  "home_remedies": ["string1", "string2"],
-  "medicines": ["string1", "string2"]
-}
-Do NOT include markdown, explanations, or text outside the JSON object.
-"""
-
-def extract_json(text):
-    try:
-        json_str = re.search(r'\{.*\}', text, re.DOTALL).group()
-        return json.loads(json_str)
-    except Exception:
-        raise ValueError("Invalid JSON in Gemini response.")
+model = load_model("Model/mask_detector.keras")  
 
 @app.route('/')
 def index():
@@ -56,7 +28,10 @@ def analyze():
 
         elif 'camera_image' in request.form:
             camera_data = request.form['camera_image']
-            header, encoded = camera_data.split(",", 1)
+            if "," in camera_data:
+                _, encoded = camera_data.split(",", 1)
+            else:
+                encoded = camera_data
             img_bytes = base64.b64decode(encoded)
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], 'captured.jpg')
             with open(filepath, "wb") as f:
@@ -64,20 +39,27 @@ def analyze():
         else:
             return redirect(url_for('index'))
 
-        image = Image.open(filepath).convert("RGB")
-        img_byte_arr = io.BytesIO()
-        image.save(img_byte_arr, format='JPEG')
-        img_bytes = img_byte_arr.getvalue()
+    
+        img = cv2.imread(filepath)
+        if img is None:
+            return f"Error: Could not load image from {filepath}"
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img_resized = cv2.resize(img, (128, 128)) # model  is train on 128x128 
+        img_array = img_resized.astype("float32") / 255.0
+        img_array = np.expand_dims(img_array, axis=0)
 
-        response = model.generate_content([
-            PROMPT,
-            {
-                "mime_type": "image/jpeg",
-                "data": img_bytes
-            }
-        ])
-        result = extract_json(response.text)
+       
+        output = model.predict(img_array)[0]
+        if len(output) > 1: 
+            pred_class = np.argmax(output)
+            confidence = float(np.max(output))
+            label = "Mask" if pred_class == 0 else "No Mask"
+        else: 
+            confidence = float(output[0])
+            label = "Mask" if confidence > 0.5 else "No Mask"
+            confidence = confidence if label == "Mask" else 1 - confidence
 
+        result = {"prediction": label, "confidence": confidence}
         session['result'] = result
         session['image_url'] = filepath
         return redirect(url_for('result'))
@@ -85,9 +67,12 @@ def analyze():
     except Exception as e:
         return f"Error: {str(e)}"
 
+
 @app.route('/result')
 def result():
-    return render_template('result.html', result=session.get('result'), image_url=session.get('image_url'))
+    return render_template('result.html',
+                           result=session.get('result'),
+                           image_url=session.get('image_url'))
 
 if __name__ == '__main__':
-    app.run(debug=True,host="0.0.0.0") 
+    app.run(debug=True, host="0.0.0.0")
