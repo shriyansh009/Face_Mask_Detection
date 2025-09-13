@@ -20,7 +20,8 @@ COPY requirements.txt /app/
 
 # Upgrade pip and install dependencies
 RUN pip install --upgrade pip setuptools wheel
-RUN pip install -r requirements.txt
+RUN pip install --use-deprecated=legacy-resolver -r requirements.txt
+
 
 # Copy project files
 COPY . /app/
