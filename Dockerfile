@@ -1,14 +1,14 @@
-# Use an official lightweight Python image
+# Use Python 3.10 slim image
 FROM python:3.10-slim
 
-# Set environment variables
+# Environment settings
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Set work directory
+# Work directory
 WORKDIR /app
 
-# Install system dependencies (for OpenCV, Pillow, etc.)
+# Install system dependencies (needed for OpenCV and TensorFlow)
 RUN apt-get update && apt-get install -y \
     build-essential \
     libgl1 \
@@ -22,13 +22,11 @@ COPY requirements.txt .
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 
-# Copy project files
+# Copy all files
 COPY . .
 
-# Expose port
+# Expose Flask port
 EXPOSE 5000
 
-# Run the app with gunicorn
+# Start with gunicorn
 CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
-
-
