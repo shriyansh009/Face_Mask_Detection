@@ -38,12 +38,13 @@ $ python app.py
 ```
 
 ## Home
-
-## Drag and Drop Image.
+<img width="744" height="417" alt="image" src="https://github.com/user-attachments/assets/33df2a6f-f261-48ae-8325-1cc973b93af8" />
 
 ## Mask not Dectected.
+<img width="740" height="404" alt="image" src="https://github.com/user-attachments/assets/b6f9e100-84ea-49ea-a6e3-63f982010acc" />
 
 ## Mask Dectected.
+<img width="743" height="407" alt="image" src="https://github.com/user-attachments/assets/bb4f753e-ac9c-4503-906c-fdd318f10219" />
 
 
 # Contact 
