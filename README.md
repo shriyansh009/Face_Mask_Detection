@@ -9,7 +9,10 @@ The model detects whether a person in an image is wearing a mask or not wearing 
 - Classification of faces as:😷 With Mask & 🚫 Without Mask
 - Works on images, and webcam.
 - Can be extended for alerting systems (buzzer, email, or SMS).
-  
+
+# Video Example:
+https://github.com/user-attachments/assets/ff7cccac-b3ae-4bc0-bf5e-d9d483c1e91e
+
 # Installation 🔗
 Download or Clone the repository.
 
